@@ -1,0 +1,6 @@
+
+{
+  "name": "커피 로스팅 ROR 계산기",
+  "description": "커피 로스팅 과정의 주요 단계별 평균 ROR(Rate of Rise)과 소요 시간을 계산하는 앱입니다. 터닝 포인트, 옐로우 구간, 1차 크랙의 온도와 시간을 입력하여 상세 분석을 확인하세요.",
+  "requestFramePermissions": []
+}
