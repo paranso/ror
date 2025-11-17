@@ -24,6 +24,17 @@ interface RorResult {
   percentage: number;
 }
 
+interface LossRateInput {
+  green: string;
+  roasted: string;
+}
+
+interface LossRateResult {
+  lossWeight: number;
+  lossRate: number;
+}
+
+
 // --- SVG ICONS ---
 const ThermometerIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -41,6 +52,12 @@ const ClockIcon: React.FC<{ className?: string }> = ({ className }) => (
 const FireIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
         <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7.014A8.003 8.003 0 0112 2a8.003 8.003 0 015.014 1.014C19.5 5 20 8 20 10c2 1 2.657 1.657 2.657 1.657a8 8 0 01-5.001 7z" />
+    </svg>
+);
+
+const WeightIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18m0 0a9 9 0 009-9h-9m-9 9a9 9 0 019-9H3m9 9a9 9 0 00-9-9h9m9 9a9 9 0 01-9-9h9" />
     </svg>
 );
 
@@ -181,6 +198,11 @@ export default function App() {
   const [results, setResults] = useState<RorResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [lossInputs, setLossInputs] = useState<LossRateInput>({ green: '', roasted: '' });
+  const [lossResult, setLossResult] = useState<LossRateResult | null>(null);
+  const [lossError, setLossError] = useState<string | null>(null);
+
+
   const handleInputChange = useCallback((stage: Stage, field: keyof RoastingInput, value: string) => {
     if (stage === 'yellow' && field === 'temp') {
         localStorage.setItem(YELLOW_TEMP_KEY, value);
@@ -287,6 +309,43 @@ export default function App() {
     setError(null);
   };
 
+  const handleLossInputChange = (field: keyof LossRateInput, value: string) => {
+    setLossInputs(prev => ({
+        ...prev,
+        [field]: value
+    }));
+  };
+
+  const handleLossCalculate = () => {
+      setLossError(null);
+      setLossResult(null);
+
+      const green = parseFloat(lossInputs.green);
+      const roasted = parseFloat(lossInputs.roasted);
+
+      if (isNaN(green) || isNaN(roasted) || green <= 0 || roasted <= 0) {
+          setLossError('투입 무게와 배출 무게를 올바르게 입력해주세요.');
+          return;
+      }
+
+      if (roasted > green) {
+          setLossError('배출 무게는 투입 무게보다 클 수 없습니다.');
+          return;
+      }
+
+      const lossWeight = green - roasted;
+      const lossRate = (lossWeight / green) * 100;
+
+      setLossResult({ lossWeight, lossRate });
+  };
+
+  const handleLossReset = () => {
+      setLossInputs({ green: '', roasted: '' });
+      setLossResult(null);
+      setLossError(null);
+  };
+
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
       <div className="w-full max-w-2xl mx-auto">
@@ -332,6 +391,77 @@ export default function App() {
                 </section>
             )}
         </main>
+
+        <section className="mt-8 bg-gray-50 dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg" aria-labelledby="loss-rate-heading">
+            <h2 id="loss-rate-heading" className="text-2xl font-semibold text-center text-amber-900 dark:text-amber-300 mb-6">로스팅 로스율 계산기</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                <label htmlFor="green-weight" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">투입 생두 무게 (g)</label>
+                <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <WeightIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                    type="number"
+                    id="green-weight"
+                    value={lossInputs.green}
+                    onChange={(e) => handleLossInputChange('green', e.target.value)}
+                    placeholder="예: 200"
+                    className="w-full pl-10 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                    />
+                </div>
+                </div>
+                <div>
+                <label htmlFor="roasted-weight" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">배출 원두 무게 (g)</label>
+                <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <WeightIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                    type="number"
+                    id="roasted-weight"
+                    value={lossInputs.roasted}
+                    onChange={(e) => handleLossInputChange('roasted', e.target.value)}
+                    placeholder="예: 170"
+                    className="w-full pl-10 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                    />
+                </div>
+                </div>
+            </div>
+
+            {lossError && (
+                <div className="mt-4 p-4 bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 rounded-md">
+                <p>{lossError}</p>
+                </div>
+            )}
+
+            <div className="mt-6 flex flex-col sm:flex-row gap-4">
+                <button onClick={handleLossCalculate} className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 dark:focus:ring-offset-gray-800 transition-transform transform hover:scale-105">
+                    <WeightIcon className="h-5 w-5" />
+                    로스율 계산
+                </button>
+                <button onClick={handleLossReset} className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 transition">
+                    초기화
+                </button>
+            </div>
+
+            {lossResult && (
+                <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/40 border border-green-300 dark:border-green-700 rounded-lg">
+                    <h3 className="text-lg font-semibold text-center text-green-800 dark:text-green-200">계산 결과</h3>
+                    <div className="mt-2 grid grid-cols-2 gap-4 text-center">
+                        <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">감소된 무게</p>
+                        <p className="text-2xl font-bold text-gray-800 dark:text-white">{lossResult.lossWeight.toFixed(2)}g</p>
+                        </div>
+                        <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">로스율</p>
+                        <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{lossResult.lossRate.toFixed(2)}%</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </section>
+
       </div>
     </div>
   );
